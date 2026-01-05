@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowMotion - Dance Training Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --purple-dark: #0C0A15;
+      --purple-surface: #1A1625;
+      --purple-lighter: #2A2435;
+      --gold: #F59E0B;
+      --gold-light: #FCD34D;
+      --gold-dark: #D97706;
+      --text-primary: #FFFFFF;
+      --text-secondary: #A78BFA;
+      --text-muted: #6B7280;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      background: var(--purple-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Login Screen */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--purple-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+
+    .login-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .login-container {
+      max-width: 440px;
+      width: 100%;
+      padding: 3rem;
+      background: linear-gradient(135deg, rgba(26, 22, 37, 0.95), rgba(42, 36, 53, 0.8));
+      border-radius: 24px;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      margin: 1.5rem;
+    }
+
+    .login-logo {
+      font-family: 'Sora', sans-serif;
+      font-size: 2.25rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      font-size: 0.9375rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.875rem 1.125rem;
+      background: rgba(12, 10, 21, 0.6);
+      border: 1px solid rgba(245, 158, 11, 0.15);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.9375rem;
+      transition: all 0.25s;
+    }
+
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: var(--purple-dark);
+      border: none;
+      border-radius: 12px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+      margin-top: 1rem;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .demo-note {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 10px;
+      font-size: 0.875rem;
+      color: var(--gold-light);
+      text-align: center;
+    }
+
+    /* Screen Container */
+    .screen {
+      display: none;
+      min-height: 100vh;
+      opacity: 0;
+      animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    /* Navigation Bar */
+    .navbar {
+      position: sticky;
+      top: 0;
+      background: rgba(26, 22, 37, 0.98);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.12);
+      z-index: 100;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.03em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-btn {
+      padding: 0.625rem 1.125rem;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .nav-btn:hover {
+      background: var(--purple-lighter);
+      color: var(--gold-light);
+      transform: translateY(-1px);
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: var(--purple-dark);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+    }
+
+    /* Typography */
+    h1, h2, h3 {
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      margin-bottom: 0.75rem;
+      font-weight: 800;
+    }
+
+    h2 {
+      font-size: 1.625rem;
+      margin-bottom: 1.125rem;
+      font-weight: 700;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.875rem;
+      font-weight: 700;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.875rem 1.75rem;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+      position: relative;
+    }
+
+    .btn svg {
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: var(--purple-dark);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35);
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    }
+
+    .btn-secondary {
+      background: var(--purple-surface);
+      color: var(--text-primary);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .btn-secondary:hover {
+      background: var(--purple-lighter);
+      border-color: var(--gold);
+      transform: translateY(-1px);
+    }
+
+    /* Cards */
+    .card {
+      background: linear-gradient(135deg, rgba(26, 22, 37, 0.9), rgba(42, 36, 53, 0.6));
+      border-radius: 18px;
+      padding: 1.75rem;
+      border: 1px solid rgba(245, 158, 11, 0.12);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Dashboard Specific */
+    .welcome-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .welcome-greeting {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .wave-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      border-radius: 12px;
+      animation: wave 2s ease-in-out infinite;
+    }
+
+    @keyframes wave {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(20deg); }
+      75% { transform: rotate(-10deg); }
+    }
+
+    .subscription-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: var(--purple-dark);
+      padding: 0.625rem 1.25rem;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: 0.875rem;
+      margin-top: 0.75rem;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+    }
+
+    .subscription-badge svg {
+      stroke: var(--purple-dark);
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .action-card {
+      background: linear-gradient(135deg, rgba(26, 22, 37, 0.95), rgba(42, 36, 53, 0.7));
+      border-radius: 18px;
+      padding: 2.25rem;
+      border: 1px solid rgba(245, 158, 11, 0.15);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .action-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .action-card:hover::before {
+      opacity: 1;
+    }
+
+    .action-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-6px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .action-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .action-card:hover .action-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .action-icon svg {
+      stroke: var(--purple-dark);
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    .recent-content-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.75rem;
+    }
+
+    .content-card {
+      background: rgba(26, 22, 37, 0.95);
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(245, 158, 11, 0.12);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .content-card:hover {
+      border-color: rgba(245, 158, 11, 0.5);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .content-thumbnail {
+      width: 100%;
+      height: 170px;
+      background: linear-gradient(135deg, rgba(42, 36, 53, 0.8), rgba(26, 22, 37, 0.9));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .content-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .content-thumbnail::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(245, 158, 11, 0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .content-card:hover .content-thumbnail::before {
+      opacity: 1;
+    }
+
+    .play-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+      position: relative;
+      z-index: 1;
+    }
+
+    .play-icon svg {
+      fill: var(--purple-dark);
+      stroke: none;
+    }
+
+    .content-card:hover .play-icon {
+      transform: scale(1.15);
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+    }
+
+    .content-info {
+      padding: 1.5rem;
+    }
+
+    .content-type {
+      display: inline-block;
+      padding: 0.375rem 0.875rem;
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--gold);
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.875rem;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .content-title {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      margin-bottom: 0.625rem;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    .content-meta {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+    }
+
+    .content-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    /* Video Player Specific */
+    .player-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .video-area {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: linear-gradient(135deg, rgba(26, 22, 37, 0.95), rgba(42, 36, 53, 0.85));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin-bottom: 2rem;
+      overflow: hidden;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .video-area video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .video-placeholder {
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      border-radius: 50%;
+      box-shadow: 0 8px 32px rgba(245, 158, 11, 0.4);
+    }
+
+    .video-placeholder svg {
+      fill: var(--purple-dark);
+      stroke: none;
+    }
+
+    .video-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(12, 10, 21, 0.98), transparent);
+      padding: 2.5rem 1.75rem 1.75rem;
+      backdrop-filter: blur(12px);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      margin-bottom: 1.25rem;
+      cursor: pointer;
+      position: relative;
+      transition: height 0.2s;
+    }
+
+    .progress-bar:hover {
+      height: 7px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+      border-radius: 4px;
+      width: 0%;
+      position: relative;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+    }
+
+    .progress-handle {
+      width: 18px;
+      height: 18px;
+      background: var(--gold-light);
+      border-radius: 50%;
+      position: absolute;
+      right: -9px;
+      top: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 2px 12px rgba(245, 158, 11, 0.6);
+      border: 2px solid var(--purple-dark);
+      transition: transform 0.2s;
+    }
+
+    .progress-bar:hover .progress-handle {
+      transform: translateY(-50%) scale(1.2);
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 1.125rem;
+    }
+
+    .control-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      cursor: pointer;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(8px);
+    }
+
+    .control-btn:hover {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--gold-light);
+      transform: scale(1.08);
+    }
+
+    .control-btn svg {
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .time-display {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .lesson-info {
+      background: linear-gradient(135deg, rgba(26, 22, 37, 0.95), rgba(42, 36, 53, 0.7));
+      border-radius: 18px;
+      padding: 2.25rem;
+      border: 1px solid rgba(245, 158, 11, 0.12);
+      margin-bottom: 1.75rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .lesson-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 2rem;
+    }
+
+    .lesson-details p {
+      color: var(--text-muted);
+      margin: 0.75rem 0;
+      line-height: 1.7;
+    }
+
+    /* Audio Player Specific */
+    .audio-player-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .waveform-container {
+      background: linear-gradient(135deg, rgba(26, 22, 37, 0.95), rgba(42, 36, 53, 0.7));
+      border-radius: 20px;
+      padding: 2.5rem;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .waveform {
+      width: 100%;
+      height: 140px;
+      background: linear-gradient(to bottom, rgba(245, 158, 11, 0.08), transparent);
+      border-radius: 12px;
+      margin-bottom: 1.75rem;
+      border: 1px solid rgba(245, 158, 11, 0.1);
+    }
+
+    .audio-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .play-btn-large {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      border: none;
+      border-radius: 50%;
+      color: var(--purple-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35);
+      position: relative;
+    }
+
+    .play-btn-large::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(245, 158, 11, 0.3);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .play-btn-large:hover::before {
+      opacity: 1;
+    }
+
+    .play-btn-large:hover {
+      transform: scale(1.1);
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      box-shadow: 0 12px 32px rgba(245, 158, 11, 0.45);
+    }
+
+    .play-btn-large svg {
+      fill: var(--purple-dark);
+      stroke: none;
+    }
+
+    .tempo-control {
+      background: linear-gradient(135deg, rgba(26, 22, 37, 0.95), rgba(42, 36, 53, 0.7));
+      border-radius: 18px;
+      padding: 2rem;
+      border: 1px solid rgba(245, 158, 11, 0.12);
+      margin-bottom: 1.75rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .bpm-display {
+      font-size: 1.5rem;
+      font-weight: 800;
+      font-family: 'Sora', sans-serif;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .slider-container {
+      margin: 1.75rem 0;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .slider {
+      width: 100%;
+      height: 18px;
+      background: rgba(42, 36, 53, 0.8);
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      border: 1px solid rgba(245, 158, 11, 0.1);
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .slider-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+      border-radius: 10px;
+      width: 50%;
+      position: relative;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    }
+
+    .slider-handle {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      border-radius: 50%;
+      position: absolute;
+      right: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5);
+      cursor: grab;
+      border: 3px solid var(--purple-dark);
+      transition: transform 0.2s;
+    }
+
+    .slider-handle:hover {
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .slider-handle:active {
+      cursor: grabbing;
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    .preset-buttons {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    .preset-btn {
+      flex: 1;
+      padding: 0.875rem;
+      background: rgba(42, 36, 53, 0.7);
+      border: 1px solid rgba(245, 158, 11, 0.15);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      line-height: 1.3;
+    }
+
+    .preset-btn:hover {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: var(--purple-dark);
+      border-color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Library Specific */
+    .library-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .search-filter-row {
+      display: flex;
+      gap: 1.25rem;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 300px;
+      background: rgba(26, 22, 37, 0.95);
+      border: 1px solid rgba(245, 158, 11, 0.15);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      color: var(--text-primary);
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.9375rem;
+      transition: all 0.25s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .search-box::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-box:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 0.625rem;
+      background: rgba(26, 22, 37, 0.95);
+      padding: 0.625rem;
+      border-radius: 14px;
+      border: 1px solid rgba(245, 158, 11, 0.1);
+    }
+
+    .filter-tab {
+      padding: 0.625rem 1.25rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Manrope', sans-serif;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .filter-tab:hover {
+      color: var(--gold-light);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .filter-tab.active {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: var(--purple-dark);
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+
+    .dance-filters {
+      display: flex;
+      gap: 0.875rem;
+      flex-wrap: wrap;
+      margin-bottom: 2.25rem;
+    }
+
+    .dance-filter-btn {
+      padding: 0.625rem 1.25rem;
+      background: rgba(26, 22, 37, 0.95);
+      border: 1px solid rgba(245, 158, 11, 0.15);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dance-filter-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold-light);
+      background: rgba(42, 36, 53, 0.8);
+      transform: translateY(-1px);
+    }
+
+    .dance-filter-btn.active {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: var(--purple-dark);
+      border-color: var(--gold);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+    }
+
+    .library-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* Stats Badge */
+    .stats-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35);
+    }
+
+    .stats-badge svg {
+      stroke: var(--purple-dark);
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.75rem 1.25rem;
+      }
+
+      h1 {
+        font-size: 1.875rem;
+      }
+
+      h2 {
+        font-size: 1.375rem;
+      }
+
+      .quick-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .video-controls {
+        padding: 1.5rem 1rem 1rem;
+      }
+
+      .controls-row {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .lesson-header {
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      .search-filter-row {
+        flex-direction: column;
+      }
+
+      .nav-links {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    /* Loading Animation */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-container">
+      <div class="login-logo">FlowMotion</div>
+      <div class="login-subtitle">Dance Training Platform</div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="emailInput" value="test@flowmotion.app" placeholder="Enter your email" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="passwordInput" value="test1234" placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit" class="login-btn">Sign In</button>
+      </form>
+
+      <div class="demo-note">
+        Demo credentials are pre-filled. Click "Sign In" to explore the platform!
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="navbar" style="display: none;" id="mainNav">
+    <div class="nav-content">
+      <a href="#" class="logo">FlowMotion</a>
+      <div class="nav-links">
+        <button class="nav-btn active" onclick="showScreen('dashboard')">Dashboard</button>
+        <button class="nav-btn" onclick="showScreen('video')">Video</button>
+        <button class="nav-btn" onclick="showScreen('audio')">Audio</button>
+        <button class="nav-btn" onclick="showScreen('library')">Library</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Screen 1: Dashboard -->
+  <div id="dashboard" class="screen active" style="display: none;">
+    <div class="container">
+      <!-- Welcome Header -->
+      <div class="welcome-section">
+        <div class="welcome-greeting">
+          <div class="wave-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 2a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 16a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1-1zM3 12a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1zm16 0a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2h-3a1 1 0 0 1-1-1z"/>
+              <path d="M5.6 5.6a1 1 0 0 1 1.4 0l2.1 2.1a1 1 0 1 1-1.4 1.4L5.6 7a1 1 0 0 1 0-1.4zm10.8 10.8a1 1 0 0 1 1.4 0l2.1 2.1a1 1 0 1 1-1.4 1.4l-2.1-2.1a1 1 0 0 1 0-1.4zM18.4 5.6a1 1 0 0 1 0 1.4l-2.1 2.1a1 1 0 1 1-1.4-1.4L16.9 5.6a1 1 0 0 1 1.4 0zM7.6 16.4a1 1 0 0 1 0 1.4l-2.1 2.1a1 1 0 1 1-1.4-1.4l2.1-2.1a1 1 0 0 1 1.4 0z"/>
+            </svg>
+          </div>
+          <h1>Welcome back!</h1>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.0625rem; font-weight: 500;">Keep up your practice streak!</p>
+        <div class="subscription-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          Complete Plan - €24,99/month
+        </div>
+      </div>
+
+      <!-- Practice Statistics -->
+      <h2 style="margin-bottom: 1.25rem;">Your Progress</h2>
+      <div class="quick-actions" style="margin-bottom: 3rem;">
+        <div class="card" style="text-align: center; padding: 2.25rem;">
+          <div style="font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Sora', sans-serif; margin-bottom: 0.625rem;" id="videoCount">8</div>
+          <div style="color: var(--text-muted); font-weight: 600; font-size: 0.9375rem;">Videos</div>
+        </div>
+
+        <div class="card" style="text-align: center; padding: 2.25rem;">
+          <div style="font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Sora', sans-serif; margin-bottom: 0.625rem;" id="audioCount">8</div>
+          <div style="color: var(--text-muted); font-weight: 600; font-size: 0.9375rem;">Audio Tracks</div>
+        </div>
+
+        <div class="card" style="text-align: center; padding: 2.25rem;">
+          <div style="font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: 'Sora', sans-serif; margin-bottom: 0.625rem;" id="pdfCount">8</div>
+          <div style="color: var(--text-muted); font-weight: 600; font-size: 0.9375rem;">PDFs</div>
+        </div>
+
+        <div class="card" style="text-align: center; padding: 2.25rem; background: linear-gradient(135deg, var(--gold-dark), var(--gold)); border: none;">
+          <div class="stats-badge" style="margin: 0 auto 0.75rem;">
+            <svg width="32" height="32" viewBox="0 0 24 24">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <div style="color: var(--purple-dark); font-weight: 700; font-size: 1.0625rem;">Rising Star</div>
+        </div>
+      </div>
+
+      <!-- Last Used / Continue Practice -->
+      <h2>Recent Content</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1.75rem; font-weight: 500;">Pick up where you left off</p>
+      <div class="recent-content-grid" id="recentContentGrid">
+        <!-- Will be populated by JavaScript -->
+      </div>
+
+      <!-- Quick Access to Video & Audio Areas -->
+      <h2 style="margin-top: 3rem;">Quick Access</h2>
+      <div class="quick-actions">
+        <div class="action-card" onclick="showScreen('video')">
+          <div class="action-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <polygon points="10 8.5 10 15.5 16 12" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+          <h3>Video Lessons</h3>
+          <p style="color: var(--text-muted); line-height: 1.6;">Watch professional demonstrations and learn choreography step-by-step</p>
+        </div>
+
+        <div class="action-card" onclick="showScreen('audio')">
+          <div class="action-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24">
+              <path d="M9 18V5l12-2v13"/>
+              <circle cx="6" cy="18" r="3"/>
+              <circle cx="18" cy="16" r="3"/>
+            </svg>
+          </div>
+          <h3>Audio Practice</h3>
+          <p style="color: var(--text-muted); line-height: 1.6;">Practice with rhythm tracks, adjust tempo and pitch to your level</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Video Player -->
+  <div id="video" class="screen" style="display: none;">
+    <div class="container">
+      <h1 style="margin-bottom: 1.75rem;">Video Lessons</h1>
+
+      <!-- Video Player -->
+      <div class="player-container" style="margin-bottom: 3.5rem;">
+        <div class="video-area" id="videoPlayerArea">
+          <div class="video-placeholder" id="videoPlaceholder">
+            <svg width="44" height="44" viewBox="0 0 24 24">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+          </div>
+          <video id="videoPlayer" style="display: none;" controls></video>
+        </div>
+
+        <div class="lesson-info">
+          <div class="lesson-header">
+            <div class="lesson-details" id="videoLessonDetails">
+              <h2>Select a video to start</h2>
+              <p>Choose from the videos below to begin your practice session.</p>
+            </div>
+            <button class="btn btn-primary" id="downloadPdfBtn" style="white-space: nowrap; display: none;">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              Figures & Technique PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Video Lessons with Filter -->
+      <h2>All Video Lessons</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1.75rem; font-weight: 500;">Select a video to play above</p>
+
+      <div class="dance-filters">
+        <button class="dance-filter-btn active" onclick="filterVideos('all')">All Dances</button>
+        <button class="dance-filter-btn" onclick="filterVideos('chacha')">Cha Cha</button>
+        <button class="dance-filter-btn" onclick="filterVideos('rumba')">Rumba</button>
+        <button class="dance-filter-btn" onclick="filterVideos('samba')">Samba</button>
+        <button class="dance-filter-btn" onclick="filterVideos('jive')">Jive</button>
+      </div>
+
+      <div class="library-grid" id="videoLibrary">
+        <!-- Will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Audio Player -->
+  <div id="audio" class="screen" style="display: none;">
+    <div class="container">
+      <h1 style="margin-bottom: 1.75rem;">Audio Practice</h1>
+
+      <!-- Audio Player -->
+      <div class="audio-player-container" style="margin-bottom: 3.5rem;">
+        <div class="waveform-container">
+          <canvas id="waveformCanvas" class="waveform"></canvas>
+
+          <div class="audio-controls">
+            <button class="control-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <polygon points="19 20 9 12 19 4 19 20"/>
+                <polygon points="13 20 3 12 13 4 13 20"/>
+              </svg>
+            </button>
+
+            <button class="play-btn-large" id="audioPlayBtn" onclick="toggleAudio()">
+              <svg width="28" height="28" viewBox="0 0 24 24" id="audioPlayIcon">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" id="audioPauseIcon" style="display: none;">
+                <rect x="6" y="4" width="4" height="16"/>
+                <rect x="14" y="4" width="4" height="16"/>
+              </svg>
+            </button>
+
+            <button class="control-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <polygon points="5 4 15 12 5 20 5 4"/>
+                <polygon points="11 4 21 12 11 20 11 4"/>
+              </svg>
+            </button>
+          </div>
+
+          <div style="text-align: center;">
+            <div class="time-display" id="audioTimeDisplay">0:00 / 0:00</div>
+            <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.875rem;" id="audioTitle">Select an audio track to begin</div>
+          </div>
+        </div>
+
+        <audio id="audioElement" style="display: none;"></audio>
+
+        <!-- Tempo Control -->
+        <div class="tempo-control">
+          <div class="control-header">
+            <h3 style="margin: 0;">Tempo Control</h3>
+            <div class="bpm-display">120 BPM</div>
+          </div>
+
+          <div class="slider-container">
+            <div class="slider-label">
+              <span>Speed</span>
+              <span>100%</span>
+            </div>
+            <div class="slider">
+              <div class="slider-fill">
+                <div class="slider-handle"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="preset-buttons">
+            <button class="preset-btn">75% Practice</button>
+            <button class="preset-btn">100% Original</button>
+            <button class="preset-btn">125% Challenge</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Audio Tracks with Filter -->
+      <h2>All Audio Tracks</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1.75rem; font-weight: 500;">Select a track to play above</p>
+
+      <div class="dance-filters">
+        <button class="dance-filter-btn active" onclick="filterAudio('all')">All Dances</button>
+        <button class="dance-filter-btn" onclick="filterAudio('chacha')">Cha Cha</button>
+        <button class="dance-filter-btn" onclick="filterAudio('rumba')">Rumba</button>
+        <button class="dance-filter-btn" onclick="filterAudio('samba')">Samba</button>
+        <button class="dance-filter-btn" onclick="filterAudio('jive')">Jive</button>
+      </div>
+
+      <div class="library-grid" id="audioLibrary">
+        <!-- Will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Library -->
+  <div id="library" class="screen" style="display: none;">
+    <div class="container">
+      <div class="library-header">
+        <h1>Content Library</h1>
+        <p style="color: var(--text-muted); font-weight: 500; margin-bottom: 1.5rem;">Browse all your dance training materials</p>
+
+        <div class="search-filter-row">
+          <input type="text" class="search-box" placeholder="Search videos, audio, and PDFs..." id="librarySearch" oninput="searchLibrary()">
+          <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterLibraryType('all')">All</button>
+            <button class="filter-tab" onclick="filterLibraryType('video')">Videos</button>
+            <button class="filter-tab" onclick="filterLibraryType('audio')">Audio</button>
+            <button class="filter-tab" onclick="filterLibraryType('pdf')">PDFs</button>
+          </div>
+        </div>
+
+        <div class="dance-filters">
+          <button class="dance-filter-btn active" onclick="filterLibraryDance('all')">All Dances</button>
+          <button class="dance-filter-btn" onclick="filterLibraryDance('chacha')">Cha Cha</button>
+          <button class="dance-filter-btn" onclick="filterLibraryDance('rumba')">Rumba</button>
+          <button class="dance-filter-btn" onclick="filterLibraryDance('samba')">Samba</button>
+          <button class="dance-filter-btn" onclick="filterLibraryDance('jive')">Jive</button>
+        </div>
+      </div>
+
+      <div class="library-grid" id="allLibrary">
+        <!-- Will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Supabase
+    const SUPABASE_URL = 'https://effhxzcyljrnvemqogtk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmZmh4emN5bGpybnZlbXFvZ3RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MDkzODIsImV4cCI6MjA4MzE4NTM4Mn0.tzLWevdu3vWU46H2IPCbIhNFz80vE3_wTy4CPaPOfew';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Content data structure
+    let contentData = {
+      videos: [],
+      audio: [],
+      pdfs: []
+    };
+
+    let currentVideo = null;
+    let currentAudio = null;
+    let currentFilter = 'all';
+    let currentLibraryFilter = { type: 'all', dance: 'all' };
+
+    // Handle login
+    async function handleLogin(event) {
+      event.preventDefault();
+      const email = document.getElementById('emailInput').value;
+      const password = document.getElementById('passwordInput').value;
+
+      // For demo purposes, we'll just validate the credentials and proceed
+      if (email === 'test@flowmotion.app' && password === 'test1234') {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('mainNav').style.display = 'block';
+        document.getElementById('dashboard').style.display = 'block';
+
+        // Load content from Supabase
+        await loadContent();
+      } else {
+        alert('Invalid credentials. Please use test@flowmotion.app / test1234');
+      }
+    }
+
+    // Load content from Supabase Storage
+    async function loadContent() {
+      console.log('Loading content from Supabase...');
+
+      // Define content structure
+      const videos = [
+        { dance: 'chacha', path: 'chacha/01-video-ccc---cowbell---basic-action-solo.mp4', title: 'Cowbell - Basic Action Solo', type: 'Solo' },
+        { dance: 'chacha', path: 'chacha/02-video-ccc---cowbell---basic-action-couple.mp4', title: 'Cowbell - Basic Action Couple', type: 'Couple' },
+        { dance: 'rumba', path: 'rumba/01-video-rumba-agogo-bells-basic-action-solo.mp4', title: 'Agogo Bells - Basic Action Solo', type: 'Solo' },
+        { dance: 'rumba', path: 'rumba/02-video-rumba-claves-basic-action-couple.mp4', title: 'Claves - Basic Action Couple', type: 'Couple' },
+        { dance: 'samba', path: 'samba/01-video-samba---agogo-bells---basic-action-solo.mp4', title: 'Agogo Bells - Basic Action Solo', type: 'Solo' },
+        { dance: 'samba', path: 'samba/02-video-samba---agogo-bells---basic-action-couple.mp4', title: 'Agogo Bells - Basic Action Couple', type: 'Couple' },
+        { dance: 'jive', path: 'jive/01-video-jive---brushes---basic-action-solo.mp4', title: 'Brushes - Basic Action Solo', type: 'Solo' },
+        { dance: 'jive', path: 'jive/02-video-jive---brushes---basic-action-couple.mp4', title: 'Brushes - Basic Action Couple', type: 'Couple' }
+      ];
+
+      const audioTracks = [
+        { dance: 'chacha', path: 'chacha/01-cowbell-1234---basic-rhythm-1_original.mp3', title: 'Cowbell 1234 - Basic Rhythm 1', type: 'Rhythm' },
+        { dance: 'chacha', path: 'chacha/02-cowbell-1234&---basic-rhythm-2_original.mp3', title: 'Cowbell 1234& - Basic Rhythm 2', type: 'Rhythm' },
+        { dance: 'rumba', path: 'rumba/01-clave-2-3-4---basic-rhythm_original.mp3', title: 'Clave 2-3-4 - Basic Rhythm', type: 'Rhythm' },
+        { dance: 'rumba', path: 'rumba/02-conga-234---basic-rhythm_original.mp3', title: 'Conga 234 - Basic Rhythm', type: 'Rhythm' },
+        { dance: 'samba', path: 'samba/01-agogo-bells-1-2---basic-rhythm-1_original.mp3', title: 'Agogo Bells 1-2 - Basic Rhythm 1', type: 'Rhythm' },
+        { dance: 'samba', path: 'samba/02-surdo-1-a2---basic-rhythm-2-_original.mp3', title: 'Surdo 1-a2 - Basic Rhythm 2', type: 'Rhythm' },
+        { dance: 'jive', path: 'jive/01-baseline-12345678---walking-base_original.mp3', title: 'Baseline 12345678 - Walking Base', type: 'Pattern' },
+        { dance: 'jive', path: 'jive/02-kick-drum-12-3d4-1d2---basic-rhythm---backline_original.mp3', title: 'Kick Drum - Basic Rhythm', type: 'Backline' }
+      ];
+
+      const pdfs = [
+        { dance: 'chacha', path: 'chacha/01-ccc-solo-principals-&-couples-fundamentals-green-level.pdf', title: 'Solo Principals & Couples Fundamentals', level: 'Green Level' },
+        { dance: 'chacha', path: 'chacha/3-general-information-ccc-green-level.pdf', title: 'General Information', level: 'Green Level' },
+        { dance: 'rumba', path: 'rumba/01-rumba-solo-principals-&-couples-fundamentals-green-level.pdf', title: 'Solo Principals & Couples Fundamentals', level: 'Green Level' },
+        { dance: 'rumba', path: 'rumba/03-general-information-rumba-green-level.pdf', title: 'General Information', level: 'Green Level' },
+        { dance: 'samba', path: 'samba/01-samba-solo-principals-&-couple-fundamentals-green-level.pdf', title: 'Solo Principals & Couple Fundamentals', level: 'Green Level' },
+        { dance: 'samba', path: 'samba/03-general-information-samba-green-level.pdf', title: 'General Information', level: 'Green Level' },
+        { dance: 'jive', path: 'jive/01-jive-solo-principals-&-couple-fundamentals-green-level.pdf', title: 'Solo Principals & Couple Fundamentals', level: 'Green Level' },
+        { dance: 'jive', path: 'jive/03-general-information-jive-green-level.pdf', title: 'General Information', level: 'Green Level' }
+      ];
+
+      // Get public URLs for all content
+      for (const video of videos) {
+        const { data } = supabase.storage.from('videos').getPublicUrl(video.path);
+        contentData.videos.push({
+          ...video,
+          url: data.publicUrl,
+          danceName: getDanceName(video.dance)
+        });
+      }
+
+      for (const audio of audioTracks) {
+        const { data } = supabase.storage.from('audio').getPublicUrl(audio.path);
+        contentData.audio.push({
+          ...audio,
+          url: data.publicUrl,
+          danceName: getDanceName(audio.dance)
+        });
+      }
+
+      for (const pdf of pdfs) {
+        const { data } = supabase.storage.from('pdfs').getPublicUrl(pdf.path);
+        contentData.pdfs.push({
+          ...pdf,
+          url: data.publicUrl,
+          danceName: getDanceName(pdf.dance)
+        });
+      }
+
+      console.log('Content loaded:', contentData);
+
+      // Update UI
+      renderVideoLibrary();
+      renderAudioLibrary();
+      renderAllLibrary();
+      renderRecentContent();
+      initializeWaveform();
+    }
+
+    function getDanceName(danceKey) {
+      const names = {
+        'chacha': 'Cha Cha',
+        'rumba': 'Rumba',
+        'samba': 'Samba',
+        'jive': 'Jive'
+      };
+      return names[danceKey] || danceKey;
+    }
+
+    // Render video library
+    function renderVideoLibrary() {
+      const container = document.getElementById('videoLibrary');
+      const filtered = currentFilter === 'all'
+        ? contentData.videos
+        : contentData.videos.filter(v => v.dance === currentFilter);
+
+      container.innerHTML = filtered.map((video, index) => `
+        <div class="content-card" onclick="playVideo(${contentData.videos.indexOf(video)})">
+          <div class="content-thumbnail">
+            <div class="play-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </div>
+          </div>
+          <div class="content-info">
+            <span class="content-type">${video.danceName}</span>
+            <div class="content-title">${video.title}</div>
+            <div class="content-meta">
+              <span>${video.type}</span>
+              <span>Beginner</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render audio library
+    function renderAudioLibrary() {
+      const container = document.getElementById('audioLibrary');
+      const filtered = currentFilter === 'all'
+        ? contentData.audio
+        : contentData.audio.filter(a => a.dance === currentFilter);
+
+      container.innerHTML = filtered.map((audio, index) => `
+        <div class="content-card" onclick="playAudio(${contentData.audio.indexOf(audio)})">
+          <div class="content-thumbnail">
+            <div class="play-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18V5l12-2v13"/>
+                <circle cx="6" cy="18" r="3"/>
+                <circle cx="18" cy="16" r="3"/>
+              </svg>
+            </div>
+          </div>
+          <div class="content-info">
+            <span class="content-type">${audio.danceName}</span>
+            <div class="content-title">${audio.title}</div>
+            <div class="content-meta">
+              <span>${audio.type}</span>
+              <span>Original</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render all library content
+    function renderAllLibrary() {
+      const container = document.getElementById('allLibrary');
+      let allContent = [];
+
+      // Filter by type
+      if (currentLibraryFilter.type === 'all' || currentLibraryFilter.type === 'video') {
+        allContent = allContent.concat(contentData.videos.map(v => ({ ...v, contentType: 'video' })));
+      }
+      if (currentLibraryFilter.type === 'all' || currentLibraryFilter.type === 'audio') {
+        allContent = allContent.concat(contentData.audio.map(a => ({ ...a, contentType: 'audio' })));
+      }
+      if (currentLibraryFilter.type === 'all' || currentLibraryFilter.type === 'pdf') {
+        allContent = allContent.concat(contentData.pdfs.map(p => ({ ...p, contentType: 'pdf' })));
+      }
+
+      // Filter by dance
+      if (currentLibraryFilter.dance !== 'all') {
+        allContent = allContent.filter(item => item.dance === currentLibraryFilter.dance);
+      }
+
+      container.innerHTML = allContent.map(item => {
+        const icon = item.contentType === 'video'
+          ? '<polygon points="5 3 19 12 5 21 5 3"/>'
+          : item.contentType === 'audio'
+          ? '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'
+          : '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>';
+
+        const clickAction = item.contentType === 'video'
+          ? `playVideo(${contentData.videos.indexOf(item)}); showScreen('video');`
+          : item.contentType === 'audio'
+          ? `playAudio(${contentData.audio.indexOf(item)}); showScreen('audio');`
+          : `window.open('${item.url}', '_blank')`;
+
+        return `
+          <div class="content-card" onclick="${clickAction}">
+            <div class="content-thumbnail">
+              <div class="play-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="${item.contentType === 'pdf' ? 'none' : 'currentColor'}" stroke="${item.contentType === 'pdf' ? 'currentColor' : 'none'}" stroke-width="2">
+                  ${icon}
+                </svg>
+              </div>
+            </div>
+            <div class="content-info">
+              <span class="content-type">${item.danceName}</span>
+              <div class="content-title">${item.title}</div>
+              <div class="content-meta">
+                <span>${item.type || item.level || 'Document'}</span>
+                <span>${item.contentType.toUpperCase()}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render recent content on dashboard
+    function renderRecentContent() {
+      const container = document.getElementById('recentContentGrid');
+      const recent = [
+        ...contentData.videos.slice(0, 2).map(v => ({ ...v, contentType: 'video' })),
+        ...contentData.audio.slice(0, 2).map(a => ({ ...a, contentType: 'audio' }))
+      ];
+
+      container.innerHTML = recent.map(item => {
+        const icon = item.contentType === 'video'
+          ? '<polygon points="5 3 19 12 5 21 5 3"/>'
+          : '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>';
+
+        const clickAction = item.contentType === 'video'
+          ? `playVideo(${contentData.videos.indexOf(item)}); showScreen('video');`
+          : `playAudio(${contentData.audio.indexOf(item)}); showScreen('audio');`;
+
+        return `
+          <div class="content-card" onclick="${clickAction}">
+            <div class="content-thumbnail">
+              <div class="play-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="${item.contentType === 'audio' ? 'none' : 'currentColor'}" stroke="${item.contentType === 'audio' ? 'currentColor' : 'none'}" stroke-width="2">
+                  ${icon}
+                </svg>
+              </div>
+            </div>
+            <div class="content-info">
+              <span class="content-type">${item.contentType.toUpperCase()}</span>
+              <div class="content-title">${item.danceName} - ${item.title}</div>
+              <div class="content-meta">
+                <span>${item.type}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Play video
+    function playVideo(index) {
+      currentVideo = contentData.videos[index];
+      const videoPlayer = document.getElementById('videoPlayer');
+      const videoPlaceholder = document.getElementById('videoPlaceholder');
+      const videoLessonDetails = document.getElementById('videoLessonDetails');
+      const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+      videoPlayer.src = currentVideo.url;
+      videoPlayer.style.display = 'block';
+      videoPlaceholder.style.display = 'none';
+      videoPlayer.play();
+
+      // Update lesson details
+      videoLessonDetails.innerHTML = `
+        <h2>${currentVideo.danceName} - ${currentVideo.title}</h2>
+        <p>Learn the fundamental basic action with professional instruction. Focus on technique, timing, and movement quality.</p>
+        <p style="margin-top: 1.125rem;"><strong>Dance:</strong> ${currentVideo.danceName} • <strong>Level:</strong> Beginner • <strong>Type:</strong> ${currentVideo.type}</p>
+      `;
+
+      // Show PDF download button (find matching PDF)
+      const matchingPdf = contentData.pdfs.find(p => p.dance === currentVideo.dance);
+      if (matchingPdf) {
+        downloadPdfBtn.style.display = 'inline-flex';
+        downloadPdfBtn.onclick = () => window.open(matchingPdf.url, '_blank');
+      }
+    }
+
+    // Play audio
+    function playAudio(index) {
+      currentAudio = contentData.audio[index];
+      const audioElement = document.getElementById('audioElement');
+      const audioTitle = document.getElementById('audioTitle');
+
+      audioElement.src = currentAudio.url;
+      audioTitle.textContent = `${currentAudio.danceName} - ${currentAudio.title}`;
+
+      // Auto-play when selecting
+      audioElement.play();
+      updateAudioPlayButton(true);
+
+      // Update time display
+      audioElement.addEventListener('timeupdate', updateAudioTime);
+      audioElement.addEventListener('ended', () => updateAudioPlayButton(false));
+    }
+
+    // Toggle audio playback
+    function toggleAudio() {
+      const audioElement = document.getElementById('audioElement');
+      if (audioElement.paused) {
+        audioElement.play();
+        updateAudioPlayButton(true);
+      } else {
+        audioElement.pause();
+        updateAudioPlayButton(false);
+      }
+    }
+
+    // Update audio play button
+    function updateAudioPlayButton(isPlaying) {
+      const playIcon = document.getElementById('audioPlayIcon');
+      const pauseIcon = document.getElementById('audioPauseIcon');
+      playIcon.style.display = isPlaying ? 'none' : 'block';
+      pauseIcon.style.display = isPlaying ? 'block' : 'none';
+    }
+
+    // Update audio time display
+    function updateAudioTime() {
+      const audioElement = document.getElementById('audioElement');
+      const timeDisplay = document.getElementById('audioTimeDisplay');
+      const current = formatTime(audioElement.currentTime);
+      const duration = formatTime(audioElement.duration);
+      timeDisplay.textContent = `${current} / ${duration}`;
+
+      // Update waveform visualization
+      animateWaveform();
+    }
+
+    // Format time helper
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Initialize waveform
+    function initializeWaveform() {
+      const canvas = document.getElementById('waveformCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.offsetWidth;
+      canvas.height = 140;
+
+      // Draw static waveform bars
+      const bars = 80;
+      const barWidth = canvas.width / bars;
+
+      for (let i = 0; i < bars; i++) {
+        const height = Math.random() * 60 + 20;
+        const x = i * barWidth;
+        const y = canvas.height - height;
+
+        const gradient = ctx.createLinearGradient(0, y, 0, canvas.height);
+        gradient.addColorStop(0, '#F59E0B');
+        gradient.addColorStop(1, '#D97706');
+
+        ctx.fillStyle = gradient;
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(x, y, barWidth - 3, height);
+      }
+    }
+
+    // Animate waveform during playback
+    function animateWaveform() {
+      const canvas = document.getElementById('waveformCanvas');
+      const ctx = canvas.getContext('2d');
+      const audioElement = document.getElementById('audioElement');
+
+      if (!audioElement.paused) {
+        const bars = 80;
+        const barWidth = canvas.width / bars;
+        const progress = audioElement.currentTime / audioElement.duration;
+        const activeBar = Math.floor(progress * bars);
+
+        // Redraw with active bars highlighted
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < bars; i++) {
+          const height = Math.random() * 60 + 20;
+          const x = i * barWidth;
+          const y = canvas.height - height;
+
+          const gradient = ctx.createLinearGradient(0, y, 0, canvas.height);
+          gradient.addColorStop(0, '#F59E0B');
+          gradient.addColorStop(1, '#D97706');
+
+          ctx.fillStyle = gradient;
+          ctx.globalAlpha = i <= activeBar ? 1 : 0.3;
+          ctx.fillRect(x, y, barWidth - 3, height);
+        }
+      }
+    }
+
+    // Filter functions
+    function filterVideos(dance) {
+      currentFilter = dance;
+      renderVideoLibrary();
+      updateFilterButtons(event.target.parentElement);
+    }
+
+    function filterAudio(dance) {
+      currentFilter = dance;
+      renderAudioLibrary();
+      updateFilterButtons(event.target.parentElement);
+    }
+
+    function filterLibraryType(type) {
+      currentLibraryFilter.type = type;
+      renderAllLibrary();
+      updateFilterButtons(event.target.parentElement);
+    }
+
+    function filterLibraryDance(dance) {
+      currentLibraryFilter.dance = dance;
+      renderAllLibrary();
+      updateFilterButtons(event.target.parentElement);
+    }
+
+    function updateFilterButtons(parent) {
+      parent.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function searchLibrary() {
+      // Simple search implementation
+      const searchTerm = document.getElementById('librarySearch').value.toLowerCase();
+      // For demo, just trigger re-render
+      renderAllLibrary();
+    }
+
+    // Screen navigation
+    function showScreen(screenId) {
+      // Hide all screens
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+        screen.style.display = 'none';
+      });
+
+      // Show selected screen
+      const selectedScreen = document.getElementById(screenId);
+      selectedScreen.style.display = 'block';
+      selectedScreen.classList.add('active');
+
+      // Update nav buttons
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+
+</body>
+</html>
